@@ -1,7 +1,7 @@
 # rollingshutterpy
 A Tkinter GUI-Implementation of a simple rolling-shutter effect.
 
-inspired by this YouTube video:
+Inspired by this YouTube video:
 https://www.youtube.com/watch?v=nP1elMR5qjc
 
 Aims to simplify the process of creating fake rolling-shutter effects, as explained in said video.
