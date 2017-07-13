@@ -22,6 +22,7 @@ class MainApp(object):
 
         # executes self.on_closing on program exit
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
+        master.resizable(False, False)
         master.minsize(width=400, height=380)
         master.title('The RSE-Simulator')
         
@@ -232,6 +233,7 @@ class RollingShutter(object):
 
         finally:
             self.running = False
+            
             app_obj.update_progress(0)
             app_obj.progress_bar.state(['disabled'])
             app_obj.enable_buttons()
