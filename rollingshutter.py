@@ -1,5 +1,5 @@
 __author__ = 'Alex Zeising'
-__version__ = '0.1'
+__version__ = '0.11'
 
 import os
 import tkinter as tk
@@ -112,7 +112,8 @@ class MainApp(object):
         self.files = [os.path.abspath(os.path.join(dir_, f))
                       for f in os.listdir(dir_)
                        if f.endswith(filetype)]
-
+        self.files.sort()
+        
         self.btn_output['state'] = 'normal'
 
     def select_output(self) -> None:
