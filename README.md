@@ -13,8 +13,8 @@ INSTRUCTIONS:
 
 3. Press 'Select Input' and choose any image of the exported frames of your video.
    The containing folder and filetype(!) of the frames + the size of the output image will be determined that way.
-4. You may now press 'Select Output File' and choose the name and path of the resulting *.jpg file.
-5. You may now change the 'Shutter Speed' with the help of the integrated slider, if you like.
+4. You may now press 'Select Output File' and choose the name and path of the resulting *.png or (optionally) *.jpg file.
+5. You may now change the 'Shutter Speed' with the help of the integrated slider, if necessary.
    The higher the shutter speed, the more vertical lines will be skipped each frame.
 6. Finally, press 'Give it a go!' and wait until a notification window appears.
 7. Enjoy your distorted image!
