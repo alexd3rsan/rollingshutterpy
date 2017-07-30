@@ -1,5 +1,5 @@
 __author__ = 'Alex Zeising'
-__version__ = '0.11'
+__version__ = '0.12'
 
 import os
 import tkinter as tk
@@ -12,6 +12,7 @@ from PIL import Image
 
 
 MAX_SPEED = 30
+IMAGE_QUALITY = 95  # effective range stops at 100
 
 
 class MainApp(object):
@@ -118,8 +119,8 @@ class MainApp(object):
 
     def select_output(self) -> None:
         path = asksaveasfilename(title='Please select the path of the image to create.',
-                                 defaultextension='.jpg',
-                                 filetypes=[('JPEG File', '*.jpg')])
+                                 defaultextension='.png',
+                                 filetypes=[('PNG File', '*.png'), ('JPEG File', '*.jpg')])
         if not path:
             return None
         
@@ -225,7 +226,7 @@ class RollingShutter(object):
                 
             app_obj.update_progress(self.current_row)
             
-            self.img_output.save(self.path_output)
+            self.img_output.save(self.path_output, quality=IMAGE_QUALITY)
             
             app_obj.progress_bar.state(['disabled'])
             app_obj.enable_buttons()
