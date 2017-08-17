@@ -1,14 +1,18 @@
+#!/usr/bin/env python
+"""This script creates a 'rolling-shutter' effect image from a video clip"""
+
 __author__ = 'Alex Zeising'
 __version__ = '0.13.0 - direct movie'
 
-import os
+# import os
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import asksaveasfilename, askopenfile
-from tkinter.messagebox import showerror, showinfo, askyesno
+# from tkinter.messagebox import showerror, showinfo, askyesno
+from tkinter.messagebox import showinfo, askyesno
 from threading import Thread
 
-from PIL import Image
+from PIL import Image # will get removed 
 
 import imageio # for direct movie input
 
@@ -106,7 +110,8 @@ class MainApp(object):
         Select input file
         """
         file = askopenfile(title='Please select the video to process',
-                           filetypes=[('Video files', ['.mp4','.mov'])])
+                           filetypes=[('Video files',
+                           ['.mov','.avi','.mpg','.mpeg','.mp4','.mkv','.wmv'])])
         if not file:
             return None
 
@@ -171,26 +176,37 @@ class MainApp(object):
         self.tk_progress_val.set(value)
 
     def enable_buttons(self) -> None:
+        """
+        Enable UI buttons
+        """
         self.btn_input['state'] = 'normal'
         self.btn_start['state'] = 'normal'
         self.btn_output['state'] = 'normal'
         self.speed_scale.state(['!disabled'])
 
     def disable_buttons(self) -> None:
+        """
+        Disable UI buttons
+        """
         self.btn_input['state'] = 'disabled'
         self.btn_start['state'] = 'disabled'
         self.btn_output['state'] = 'disabled'
         self.speed_scale.state(['disabled'])
-        
+
     def on_closing(self) -> None:
+        """
+        Closing method
+        """
         if self.rolling_shutter and self.rolling_shutter.running:
             return None
-        
+
         self.master.destroy()
 
-        
+
 class RollingShutter(object):
-    # simulates the well-known 'Rolling-Shutter-Parker-Effect'
+    """
+    Simulates the well-known 'Rolling-Shutter-Parker-Effect'
+    """
     
     ## WIP: Add typechecking for video_reader
     def __init__(self, video_reader, speed: int, path_output: str):
@@ -218,7 +234,7 @@ class RollingShutter(object):
         self.running = True
           
         try:
-            for i, frame in enumerate(self.video_reader):
+            for _, frame in enumerate(self.video_reader):
                 frame = Image.fromarray(frame)
                 new_line = frame.crop((0,
                                        self.current_row,
