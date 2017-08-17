@@ -1,5 +1,6 @@
 # rollingshutterpy
 A Tkinter GUI-Implementation of a simple rolling-shutter effect.
+This branch attempts to add direct input froma video file.
 
 Inspired by this YouTube video:
 https://www.youtube.com/watch?v=nP1elMR5qjc
@@ -11,8 +12,7 @@ INSTRUCTIONS:
 1. Make sure you have 'Python 3.x' and the module 'Pillow' installed. (pip install pillow)
 2. Run rollingshutter.py with python
 
-3. Press 'Select Input' and choose any image of the exported frames of your video.
-   The containing folder and filetype(!) of the frames + the size of the output image will be determined that way.
+3. Press 'Select Input' and choose the video file to use as an input.
 4. You may now press 'Select Output File' and choose the name and path of the resulting *.png or (optionally) *.jpg file.
 5. You may now change the 'Shutter Speed' with the help of the integrated slider, if necessary.
    The higher the shutter speed, the more vertical lines will be skipped each frame.
@@ -24,5 +24,4 @@ Make sure you have the proper read and write permissions of the directories in q
 
 Operating Systems:
 rollingshutter.py has been successfully tested under:
-- Windows 10 64 Bit
-- Arch Linux
+- MacOS 10.12.6
