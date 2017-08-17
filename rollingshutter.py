@@ -1,5 +1,5 @@
 __author__ = 'Alex Zeising'
-__version__ = '0.12'
+__version__ = '0.13.0 - direct movie'
 
 import os
 import tkinter as tk
@@ -10,6 +10,7 @@ from threading import Thread
 
 from PIL import Image
 
+import imageio # for direct movie input
 
 MAX_SPEED = 30
 IMAGE_QUALITY = 95  # effective range stops at 100
@@ -26,10 +27,10 @@ class MainApp(object):
         master.resizable(False, False)
         master.minsize(width=400, height=380)
         master.title('The RSE-Simulator')
-        
+
         self.rolling_shutter = None
 
-        self.files = []
+        self.vid = None
         self.file_output = ''
 
         self.tk_speed_val = tk.IntVar()
@@ -101,23 +102,28 @@ class MainApp(object):
         self.label_version.pack(anchor='e', padx=(0, 5))
 
     def select_input(self) -> None:
-        file = askopenfile(title='Please select one (any) frame from your set of images.',
-                           filetypes=[('Image Files', ['.jpeg', '.jpg', '.png', '.gif',
-                                                       '.tiff', '.tif', '.bmp'])])
+        """
+        Select input file
+        """
+        file = askopenfile(title='Please select the video to process',
+                           filetypes=[('Video files', ['.mp4','.mov'])])
         if not file:
             return None
-        
-        dir_ = os.path.dirname(file.name)
-        filetype = os.path.splitext(file.name)
-        
-        self.files = [os.path.abspath(os.path.join(dir_, f))
-                      for f in os.listdir(dir_)
-                       if f.endswith(filetype)]
-        self.files.sort()
-        
+
+        # Try to close the video reader
+        if self.vid:
+            try:
+                self.vid.close()
+            finally:
+                self.vid = None
+
+        self.vid = imageio.get_reader(file.name, 'ffmpeg') # open video reader
         self.btn_output['state'] = 'normal'
 
     def select_output(self) -> None:
+        """
+        Select output file
+        """
         path = asksaveasfilename(title='Please select the path of the image to create.',
                                  defaultextension='.png',
                                  filetypes=[('PNG File', '*.png'), ('JPEG File', '*.jpg')])
@@ -131,7 +137,7 @@ class MainApp(object):
         
         
     def start(self) -> None:
-        rs = self.rolling_shutter = RollingShutter(self.files,
+        rs = self.rolling_shutter = RollingShutter(self.vid,
                                                    self.tk_speed_val.get(),
                                                    self.file_output)
         
@@ -186,32 +192,34 @@ class MainApp(object):
 class RollingShutter(object):
     # simulates the well-known 'Rolling-Shutter-Parker-Effect'
     
-    def __init__(self, frame_paths: list, speed: int, path_output: str):
-        self.frame_paths = frame_paths
+    ## WIP: Add typechecking for video_reader
+    def __init__(self, video_reader, speed: int, path_output: str):
         self.speed = speed
         self.path_output = path_output
 
-        self.frame_count = len(frame_paths)
+        self.video_reader = video_reader
+        self.frame_count = len(video_reader)
 
         self.current_row = 0
 
-        width, height = Image.open(frame_paths[0]).size
+        #self.writer = imageio.get_writer(path_output)
+        #WIP: replace Image with imageio's image output
+        width, height = self.video_reader._meta['size']
         self.img_output = Image.new('RGB', (width, height))
-
-        self.width, self.height = width, height
         
+        self.width, self.height = width, height
+
         self.running = False
         
     def thread(self, app_obj) -> None:
-        width, height = self.width, self.height
+        width, height = self.video_reader._meta['size']
         speed = self.speed
         
         self.running = True
-        
+          
         try:
-            for path in self.frame_paths:
-                frame = Image.open(path)
-                
+            for i, frame in enumerate(self.video_reader):
+                frame = Image.fromarray(frame)
                 new_line = frame.crop((0,
                                        self.current_row,
                                        width,
@@ -246,7 +254,6 @@ def main() -> None:
 
     MainApp(root)
     root.mainloop()
-
     
 if __name__ == '__main__':
     main()
