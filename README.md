@@ -27,4 +27,4 @@ Make sure you have the proper read and write permissions of the directories in q
 
 rollingshutter.py has been successfully tested under:
 
-- MacOS 10.12.6
+- MacOS X 10.12.6
