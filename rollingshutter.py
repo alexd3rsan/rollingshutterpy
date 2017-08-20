@@ -12,7 +12,7 @@ from tkinter.filedialog import asksaveasfilename, askopenfile
 from tkinter.messagebox import showinfo, askyesno
 from threading import Thread
 
-from PIL import Image # will get removed 
+from PIL import Image, ImageDraw, ImageTk # will get removed 
 
 import imageio # for direct movie input
 
@@ -36,6 +36,9 @@ class MainApp(object):
 
         self.vid = None
         self.file_output = ''
+
+        self.preview_window = None
+        self.thread = None
 
         self.tk_speed_val = tk.IntVar()
         self.tk_speed_val.set(1)
@@ -68,8 +71,15 @@ class MainApp(object):
                                      command=self.select_output,
                                      state='disabled',
                                      takefocus=0)
-        self.btn_output.pack(fill='both', padx=40, expand=True)
+        self.btn_output.pack(fill='both', padx=40, expand=True, pady=10)
         
+        self.btn_preview = ttk.Button(self.frame_main,
+                                     text='Show Preview window',
+                                     command=self.show_preview,
+                                     state='disabled',
+                                     takefocus=0)
+        self.btn_preview.pack(fill='both', padx=40, expand=True, pady=10)
+
         self.speed_scale = ttk.Scale(self.frame_main,
                                      variable=self.tk_speed_val,
                                      command=self.update_speed,
@@ -124,6 +134,7 @@ class MainApp(object):
 
         self.vid = imageio.get_reader(file.name, 'ffmpeg') # open video reader
         self.btn_output['state'] = 'normal'
+        self.btn_preview['state'] = 'normal'
 
     def select_output(self) -> None:
         """
@@ -140,11 +151,18 @@ class MainApp(object):
         self.speed_scale.state(['!disabled'])
         self.btn_start['state'] = 'normal'
         
+    def show_preview(self) -> None:
+        
+        if self.preview_window:
+            self.preview_window.on_closing()
+
+        newWindow = tk.Toplevel(self.master)
+        self.preview_window = PreviewWindow(newWindow,self.vid._meta['size'])
         
     def start(self) -> None:
         rs = self.rolling_shutter = RollingShutter(self.vid,
                                                    self.tk_speed_val.get(),
-                                                   self.file_output)
+                                                   self.file_output,self.preview_window)
         
         lines_covered = rs.frame_count * self.tk_speed_val.get()
         
@@ -164,10 +182,10 @@ class MainApp(object):
         self.disable_buttons()
         self.progress_bar.config(maximum=lines_covered)
         self.progress_bar.state(['!disabled'])
-        
-        t1 = Thread(target=rs.thread, args=(self,))
-        t1.setDaemon(True)
-        t1.start()
+
+        self.thread = Thread(target=rs.thread, args=(self,))
+        self.thread.setDaemon(True)
+        self.thread.start()
 
     def update_speed(self, event=None) -> None:
         self.label_speed.config(text='Shutter Speed: '+str(self.tk_speed_val.get()))
@@ -182,6 +200,7 @@ class MainApp(object):
         self.btn_input['state'] = 'normal'
         self.btn_start['state'] = 'normal'
         self.btn_output['state'] = 'normal'
+        self.btn_preview['state'] = 'normal'
         self.speed_scale.state(['!disabled'])
 
     def disable_buttons(self) -> None:
@@ -191,6 +210,7 @@ class MainApp(object):
         self.btn_input['state'] = 'disabled'
         self.btn_start['state'] = 'disabled'
         self.btn_output['state'] = 'disabled'
+        self.btn_preview['state'] = 'disabled'
         self.speed_scale.state(['disabled'])
 
     def on_closing(self) -> None:
@@ -202,6 +222,72 @@ class MainApp(object):
 
         self.master.destroy()
 
+class PreviewWindow(object):
+    # contains GUI (tkinter) structure and logic
+    
+    def __init__(self, master, size):
+        self.master = master
+
+        # executes self.on_closing on program exit
+        master.protocol('WM_DELETE_WINDOW', self.on_closing)
+        master.resizable(False, False)
+        master.minsize(width=400, height=380)
+        master.title('Preview')
+
+        self.image = None
+
+        # <- FRAME SECTION ->
+        
+        self.frame_main = tk.Frame(master)
+        self.frame_main.pack(fill='both', expand=True)
+        
+        self.frame_footer = tk.Frame(master)
+        self.frame_footer.pack(fill='both', anchor='s')
+
+        # <- WIDGET SECTION ->
+       
+        self.label_title = ttk.Label(self.frame_main,
+                                     text='Rolling-Shutter-Simulator',
+                                     font=('Tahoma', 18))
+        self.label_title.pack(pady=(8, 20))
+
+        # canvas for image
+        #self.canvas = tk.Canvas(self.frame_main, width=512, height=512)
+        #self.canvas.pack()
+        #self.canvas.grid(row=0, column=0)
+
+        # Balck temp image
+        im = Image.new("RGB",(512,512))
+        self.image = ImageTk.PhotoImage(im)
+
+        # put balck image on canvas
+        #self.image_on_canvas = self.canvas.create_image((0,0), anchor = 'nw', image = self.image)
+
+        self.image_panel = tk.Label(self.frame_main, image = self.image)
+        #self.can
+        self.image_panel.pack(side = "bottom", fill = "both", expand = "yes")
+        
+        self.label_version = tk.Label(self.frame_footer,
+                                      text='Version '+__version__,
+                                      font=('Tahoma', 10),
+                                      fg='grey60')
+        self.label_version.pack(anchor='e', padx=(0, 5))
+    
+    def update_image(self,im):
+        new_image = ImageTk.PhotoImage(im.resize((512,512), Image.ANTIALIAS))
+        self.image = new_image
+        self.image_panel.configure(image = self.image)
+        self.image_panel.image = self.image
+        #self.image = ImageTk.PhotoImage("RGB",(1,1))
+        #self.canvas.itemconfig(self.image_on_canvas, image = new_image)
+        #self.canvas.pack()
+        #self.canvas.update_idletasks()
+
+    def on_closing(self) -> None:
+        """
+        Closing method
+        """
+        self.master.destroy()
 
 class RollingShutter(object):
     """
@@ -209,9 +295,10 @@ class RollingShutter(object):
     """
     
     ## WIP: Add typechecking for video_reader
-    def __init__(self, video_reader, speed: int, path_output: str):
+    def __init__(self, video_reader, speed: int, path_output: str, preview_window = None):
         self.speed = speed
         self.path_output = path_output
+        self.preview_window = preview_window
 
         self.video_reader = video_reader
         self.frame_count = len(video_reader)
@@ -235,20 +322,42 @@ class RollingShutter(object):
           
         try:
             for _, frame in enumerate(self.video_reader):
+                
                 frame = Image.fromarray(frame)
+
                 new_line = frame.crop((0,
                                        self.current_row,
                                        width,
                                        self.current_row + speed))
                 
                 self.img_output.paste(new_line, (0, self.current_row))
+
+                if self.preview_window:
+                    im = frame
+
+                    # Replace 
+                    top_part = (0,0,width-1,self.current_row+speed-1)
+                    im.paste(self.img_output.crop(top_part), top_part)
+
+                    # Draw a line to show the current shutter position
+                    draw = ImageDraw.Draw(im)
+                    draw.line([(0, self.current_row),(width,self.current_row)], fill=128, width=speed)
+                    
+                    # cOnvert back to RGB to draw
+                    im = im.convert('RGB')
+
+                    self.preview_window.update_image(im)
+
                 frame.close()
 
                 app_obj.update_progress(self.current_row)
                 
                 self.current_row += speed
+                if self.current_row > height:
+                    app_obj.update_progress(height)
+                    break
                 
-            app_obj.update_progress(self.current_row)
+            #app_obj.update_progress(self.current_row)
             
             self.img_output.save(self.path_output, quality=IMAGE_QUALITY)
             
