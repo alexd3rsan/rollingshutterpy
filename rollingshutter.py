@@ -38,6 +38,7 @@ class MainApp(object):
         self.file_output = ''
 
         self.preview_window = None
+        self.thread = None
 
         self.tk_speed_val = tk.IntVar()
         self.tk_speed_val.set(1)
@@ -151,6 +152,7 @@ class MainApp(object):
         self.btn_start['state'] = 'normal'
         
     def show_preview(self) -> None:
+        
         if self.preview_window:
             self.preview_window.on_closing()
 
@@ -180,10 +182,10 @@ class MainApp(object):
         self.disable_buttons()
         self.progress_bar.config(maximum=lines_covered)
         self.progress_bar.state(['!disabled'])
-        
-        t1 = Thread(target=rs.thread, args=(self,))
-        t1.setDaemon(True)
-        t1.start()
+
+        self.thread = Thread(target=rs.thread, args=(self,))
+        self.thread.setDaemon(True)
+        self.thread.start()
 
     def update_speed(self, event=None) -> None:
         self.label_speed.config(text='Shutter Speed: '+str(self.tk_speed_val.get()))
@@ -334,12 +336,12 @@ class RollingShutter(object):
                     im = frame
 
                     # Replace 
-                    top_part = (0,0,width-1,self.current_row + speed-1)
+                    top_part = (0,0,width-1,self.current_row+speed-1)
                     im.paste(self.img_output.crop(top_part), top_part)
 
                     # Draw a line to show the current shutter position
                     draw = ImageDraw.Draw(im)
-                    draw.line([(0, self.current_row),(width,self.current_row)], fill=128, width=2)
+                    draw.line([(0, self.current_row),(width,self.current_row)], fill=128, width=speed)
                     
                     # cOnvert back to RGB to draw
                     im = im.convert('RGB')
