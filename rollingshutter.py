@@ -12,18 +12,17 @@ from tkinter.filedialog import asksaveasfilename, askopenfile
 from tkinter.messagebox import showinfo, askyesno
 from threading import Thread
 
-from PIL import Image, ImageDraw, ImageTk # will get removed 
-
+from PIL import Image, ImageDraw, ImageTk
 import imageio # for direct movie input
 
 MAX_SPEED = 30
 IMAGE_QUALITY = 95  # effective range stops at 100
 
-
 class MainApp(object):
-    # contains GUI (tkinter) structure and logic
-    
     def __init__(self, master):
+        '''
+        Contains GUI (tkinter) structure and logic
+        '''
         self.master = master
 
         # executes self.on_closing on program exit
@@ -116,12 +115,11 @@ class MainApp(object):
         self.label_version.pack(anchor='e', padx=(0, 5))
 
     def select_input(self) -> None:
-        """
+        '''
         Select input file
-        """
+        '''
         file = askopenfile(title='Please select the video to process',
-                           filetypes=[('Video files',
-                           ['.mov','.avi','.mpg','.mpeg','.mp4','.mkv','.wmv'])])
+                           filetypes=[('Video files', ['.mov', '.avi', '.mpg', '.mpeg', '.mp4', '.mkv', '.wmv'])])
         if not file:
             return None
 
@@ -137,9 +135,9 @@ class MainApp(object):
         self.btn_preview['state'] = 'normal'
 
     def select_output(self) -> None:
-        """
+        '''
         Select output file
-        """
+        '''
         path = asksaveasfilename(title='Please select the path of the image to create.',
                                  defaultextension='.png',
                                  filetypes=[('PNG File', '*.png'), ('JPEG File', '*.jpg')])
@@ -152,38 +150,46 @@ class MainApp(object):
         self.btn_start['state'] = 'normal'
         
     def show_preview(self) -> None:
-        
+        '''
+        Show the preview window
+        '''
         if self.preview_window:
             self.preview_window.on_closing()
 
         newWindow = tk.Toplevel(self.master)
-        self.preview_window = PreviewWindow(newWindow,self.vid._meta['size'])
+        #self.preview_window = PreviewWindow(newWindow,self.vid._meta['size'])
+        self.preview_window = PreviewWindow(newWindow)
         
     def start(self) -> None:
-        rs = self.rolling_shutter = RollingShutter(self.vid,
-                                                   self.tk_speed_val.get(),
-                                                   self.file_output,self.preview_window)
-        
+        '''
+        Called by the start button 'btn_start'
+        '''
+        self.disable_buttons()
+
+        rs = self.rolling_shutter = RollingShutter(self.vid, 
+                                                   self.tk_speed_val.get(), 
+                                                   self.file_output)
+
         lines_covered = rs.frame_count * self.tk_speed_val.get()
         
-        if lines_covered < rs.height:
+        if lines_covered < rs.size[1]:
             m = ('The number of iterations ({}) is lower than the height'
                  ' of the resulting image ({}px).\n\nMissing spots ({} lines)'
                  ' will be filled with black.\n\n'
                  'Do you want to continue?')
             message = m.format(lines_covered,
-                               rs.height,
-                               rs.height-lines_covered)
+                               rs.size[1],
+                               rs.size[1]-lines_covered)
             choice = askyesno('Proceed?', message)
                               
             if not choice:
+                self.enable_buttons()
                 return None
-            
-        self.disable_buttons()
+
         self.progress_bar.config(maximum=lines_covered)
         self.progress_bar.state(['!disabled'])
 
-        self.thread = Thread(target=rs.thread, args=(self,))
+        self.thread = Thread(target=rs.thread, args=(self,self.preview_window))
         self.thread.setDaemon(True)
         self.thread.start()
 
@@ -194,9 +200,6 @@ class MainApp(object):
         self.tk_progress_val.set(value)
 
     def enable_buttons(self) -> None:
-        """
-        Enable UI buttons
-        """
         self.btn_input['state'] = 'normal'
         self.btn_start['state'] = 'normal'
         self.btn_output['state'] = 'normal'
@@ -204,9 +207,6 @@ class MainApp(object):
         self.speed_scale.state(['!disabled'])
 
     def disable_buttons(self) -> None:
-        """
-        Disable UI buttons
-        """
         self.btn_input['state'] = 'disabled'
         self.btn_start['state'] = 'disabled'
         self.btn_output['state'] = 'disabled'
@@ -214,59 +214,43 @@ class MainApp(object):
         self.speed_scale.state(['disabled'])
 
     def on_closing(self) -> None:
-        """
-        Closing method
-        """
         if self.rolling_shutter and self.rolling_shutter.running:
             return None
 
         self.master.destroy()
 
 class PreviewWindow(object):
-    # contains GUI (tkinter) structure and logic
-    
-    def __init__(self, master, size):
-        self.master = master
+    def __init__(self, master):
+        self.master = master # Master tkinter object
 
-        # executes self.on_closing on program exit
+        # Window settings
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
         master.resizable(False, False)
-        master.minsize(width=400, height=380)
         master.title('Preview')
 
         self.image = None
 
-        # <- FRAME SECTION ->
-        
+        # Window frame
         self.frame_main = tk.Frame(master)
         self.frame_main.pack(fill='both', expand=True)
         
         self.frame_footer = tk.Frame(master)
         self.frame_footer.pack(fill='both', anchor='s')
 
-        # <- WIDGET SECTION ->
-       
+        # Window title
         self.label_title = ttk.Label(self.frame_main,
                                      text='Rolling-Shutter-Simulator',
                                      font=('Tahoma', 18))
         self.label_title.pack(pady=(8, 20))
-
-        # canvas for image
-        #self.canvas = tk.Canvas(self.frame_main, width=512, height=512)
-        #self.canvas.pack()
-        #self.canvas.grid(row=0, column=0)
-
-        # Balck temp image
-        im = Image.new("RGB",(512,512))
+        
+        # Preview canvas
+        im = Image.new("RGB",(512,512)) # Black temp image
         self.image = ImageTk.PhotoImage(im)
 
-        # put balck image on canvas
-        #self.image_on_canvas = self.canvas.create_image((0,0), anchor = 'nw', image = self.image)
-
         self.image_panel = tk.Label(self.frame_main, image = self.image)
-        #self.can
         self.image_panel.pack(side = "bottom", fill = "both", expand = "yes")
-        
+
+        # Version label
         self.label_version = tk.Label(self.frame_footer,
                                       text='Version '+__version__,
                                       font=('Tahoma', 10),
@@ -274,104 +258,91 @@ class PreviewWindow(object):
         self.label_version.pack(anchor='e', padx=(0, 5))
     
     def update_image(self,im):
-        new_image = ImageTk.PhotoImage(im.resize((512,512), Image.ANTIALIAS))
-        self.image = new_image
+        self.image = ImageTk.PhotoImage(im.resize((512,512), Image.ANTIALIAS))
         self.image_panel.configure(image = self.image)
         self.image_panel.image = self.image
-        #self.image = ImageTk.PhotoImage("RGB",(1,1))
-        #self.canvas.itemconfig(self.image_on_canvas, image = new_image)
-        #self.canvas.pack()
-        #self.canvas.update_idletasks()
 
     def on_closing(self) -> None:
-        """
-        Closing method
-        """
         self.master.destroy()
 
 class RollingShutter(object):
-    """
-    Simulates the well-known 'Rolling-Shutter-Parker-Effect'
-    """
-    
-    ## WIP: Add typechecking for video_reader
-    def __init__(self, video_reader, speed: int, path_output: str, preview_window = None):
+    def __init__(self, video_reader, speed: int, path_output: str):
+        '''
+        Class for simulating the well-known 'Rolling-Shutter-Parker-Effect'
+        '''
+
+        # WIP: Add typechecking for video_reader
         self.speed = speed
         self.path_output = path_output
-        self.preview_window = preview_window
 
         self.video_reader = video_reader
         self.frame_count = len(video_reader)
 
         self.current_row = 0
 
-        #self.writer = imageio.get_writer(path_output)
-        #WIP: replace Image with imageio's image output
-        width, height = self.video_reader._meta['size']
-        self.img_output = Image.new('RGB', (width, height))
-        
-        self.width, self.height = width, height
+        self.size = self.video_reader._meta['size']
+        self.img_output = Image.new('RGB', self.size)
 
+        # Is the processing thread running
         self.running = False
         
-    def thread(self, app_obj) -> None:
-        width, height = self.video_reader._meta['size']
+    def thread(self, main_window, preview_window) -> None:
+        '''
+        Process video in a separate thread
+        '''
+        w, h = self.size
         speed = self.speed
         
         self.running = True
           
         try:
-            for _, frame in enumerate(self.video_reader):
-                
-                frame = Image.fromarray(frame)
+            for frame in self.video_reader:
+                frame = Image.fromarray(frame) # Convert to Pillow image
 
                 new_line = frame.crop((0,
                                        self.current_row,
-                                       width,
+                                       w,
                                        self.current_row + speed))
                 
                 self.img_output.paste(new_line, (0, self.current_row))
 
-                if self.preview_window:
+                if preview_window:
                     im = frame
 
                     # Replace 
-                    top_part = (0,0,width-1,self.current_row+speed-1)
+                    top_part = (0,0,w-1,self.current_row+speed-1)
                     im.paste(self.img_output.crop(top_part), top_part)
 
                     # Draw a line to show the current shutter position
                     draw = ImageDraw.Draw(im)
-                    draw.line([(0, self.current_row),(width,self.current_row)], fill=128, width=speed)
+                    draw.line([(0, self.current_row),(w,self.current_row)], fill=128, width=speed)
                     
-                    # cOnvert back to RGB to draw
+                    # convert back to RGB to draw
                     im = im.convert('RGB')
 
-                    self.preview_window.update_image(im)
+                    preview_window.update_image(im)
 
                 frame.close()
 
-                app_obj.update_progress(self.current_row)
+                main_window.update_progress(self.current_row)
                 
                 self.current_row += speed
-                if self.current_row > height:
-                    app_obj.update_progress(height)
+                if self.current_row > h:
                     break
-                
-            #app_obj.update_progress(self.current_row)
             
             self.img_output.save(self.path_output, quality=IMAGE_QUALITY)
             
-            app_obj.progress_bar.state(['disabled'])
-            app_obj.enable_buttons()
+            main_window.progress_bar.state(['disabled'])
+            main_window.enable_buttons()
             
             showinfo('Process Complete.', 'The shutter-rolled image has been created!')
 
         finally:
             self.running = False
             
-            app_obj.update_progress(0)
-            app_obj.progress_bar.state(['disabled'])
-            app_obj.enable_buttons()
+            main_window.update_progress(0)
+            main_window.progress_bar.state(['disabled'])
+            main_window.enable_buttons()
     
             
 def main() -> None:
