@@ -24,6 +24,7 @@ class MainApp(object):
         Contains GUI (tkinter) structure and logic
         '''
         self.master = master
+        self.version = __version__
 
         # executes self.on_closing on program exit
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
@@ -31,7 +32,7 @@ class MainApp(object):
         master.minsize(width=400, height=380)
         master.title('The RSE-Simulator')
 
-        self.rolling_shutter = None
+        self.rolling_shutter = RollingShutter()
 
         self.vid = None
         self.file_output = ''
@@ -43,6 +44,11 @@ class MainApp(object):
         self.tk_speed_val.set(1)
         self.tk_progress_val = tk.DoubleVar()
         self.tk_progress_val.set(0.0)
+
+        self.populate_panel()
+
+    def populate_panel(self) -> None:
+        master = self.master
 
         # <- FRAME SECTION ->
         
@@ -107,9 +113,8 @@ class MainApp(object):
                                     takefocus=0)
         self.btn_start.pack(fill='both', padx=140, pady=(8, 0), expand=True)
         
-        
         self.label_version = tk.Label(self.frame_footer,
-                                      text='Version '+__version__,
+                                      text='Version ' + self.version,
                                       font=('Tahoma', 10),
                                       fg='grey60')
         self.label_version.pack(anchor='e', padx=(0, 5))
@@ -154,11 +159,13 @@ class MainApp(object):
         Show the preview window
         '''
         if self.preview_window:
-            self.preview_window.on_closing()
+            self.preview_window.master.destroy()
 
-        newWindow = tk.Toplevel(self.master)
-        #self.preview_window = PreviewWindow(newWindow,self.vid._meta['size'])
-        self.preview_window = PreviewWindow(newWindow)
+        master = tk.Toplevel(self.master)
+        self.preview_window = PreviewWindow(master)
+
+        # Set the preview window of the rolling-shutter instance
+        self.rolling_shutter.set_preview_window(self.preview_window)
         
     def start(self) -> None:
         '''
@@ -166,9 +173,8 @@ class MainApp(object):
         '''
         self.disable_buttons()
 
-        rs = self.rolling_shutter = RollingShutter(self.vid, 
-                                                   self.tk_speed_val.get(), 
-                                                   self.file_output)
+        rs = self.rolling_shutter
+        rs.setup(self.vid, self.tk_speed_val.get(), self.file_output)
 
         lines_covered = rs.frame_count * self.tk_speed_val.get()
         
@@ -189,7 +195,7 @@ class MainApp(object):
         self.progress_bar.config(maximum=lines_covered)
         self.progress_bar.state(['!disabled'])
 
-        self.thread = Thread(target=rs.thread, args=(self,self.preview_window))
+        self.thread = Thread(target=rs.thread, args=(self,))
         self.thread.setDaemon(True)
         self.thread.start()
 
@@ -203,14 +209,14 @@ class MainApp(object):
         self.btn_input['state'] = 'normal'
         self.btn_start['state'] = 'normal'
         self.btn_output['state'] = 'normal'
-        self.btn_preview['state'] = 'normal'
+        #self.btn_preview['state'] = 'normal'
         self.speed_scale.state(['!disabled'])
 
     def disable_buttons(self) -> None:
         self.btn_input['state'] = 'disabled'
         self.btn_start['state'] = 'disabled'
         self.btn_output['state'] = 'disabled'
-        self.btn_preview['state'] = 'disabled'
+        #self.btn_preview['state'] = 'disabled'
         self.speed_scale.state(['disabled'])
 
     def on_closing(self) -> None:
@@ -220,8 +226,13 @@ class MainApp(object):
         self.master.destroy()
 
 class PreviewWindow(object):
+    ''' The window for live-preview
+    '''
+
     def __init__(self, master):
         self.master = master # Master tkinter object
+        self.version = __version__
+        self.open = True
 
         # Window settings
         master.protocol('WM_DELETE_WINDOW', self.on_closing)
@@ -229,6 +240,13 @@ class PreviewWindow(object):
         master.title('Preview')
 
         self.image = None
+
+        self.populate_panel()
+
+    def populate_panel(self) -> None:
+        ''' Populate the window with things
+        '''
+        master = self.master
 
         # Window frame
         self.frame_main = tk.Frame(master)
@@ -252,44 +270,74 @@ class PreviewWindow(object):
 
         # Version label
         self.label_version = tk.Label(self.frame_footer,
-                                      text='Version '+__version__,
+                                      text='Version '+self.version,
                                       font=('Tahoma', 10),
                                       fg='grey60')
         self.label_version.pack(anchor='e', padx=(0, 5))
     
     def update_image(self,im):
+        ''' Update the image on canvas
+        '''
         self.image = ImageTk.PhotoImage(im.resize((512,512), Image.ANTIALIAS))
         self.image_panel.configure(image = self.image)
         self.image_panel.image = self.image
 
     def on_closing(self) -> None:
+        self.open = False
         self.master.destroy()
 
 class RollingShutter(object):
-    def __init__(self, video_reader, speed: int, path_output: str):
-        '''
-        Class for simulating the well-known 'Rolling-Shutter-Parker-Effect'
-        '''
+    ''' Class for simulating the well-known 'Rolling-Shutter-Parker-Effect'
+    '''
 
-        # WIP: Add typechecking for video_reader
+    def __init__(self):
+        ''' Initilaise empty class
+        '''
+        # Init empty containers
+        self.speed = None
+        self.path_output = None
+        self.video_reader = None
+        self.frame_count = 0
+        self.size = None
+        self.img_output = None
+        self.running = False
+
+        # Current processing row
+        self.current_row = 0
+
+        # Is the processing thread running
+        self.running = False
+
+        # Is the setup done
+        self.setup_done = False
+
+    def setup(self, video_reader, speed: int, path_output: str):
+        ''' Setup self for procesing
+        '''
         self.speed = speed
         self.path_output = path_output
 
         self.video_reader = video_reader
         self.frame_count = len(video_reader)
 
-        self.current_row = 0
-
         self.size = self.video_reader._meta['size']
         self.img_output = Image.new('RGB', self.size)
 
-        # Is the processing thread running
-        self.running = False
+        self.setup_done = True
+    
+    def set_preview_window(self, preview_window) -> None:
+        ''' Set the preview window reference
+        '''
+        self.preview_window = preview_window
         
-    def thread(self, main_window, preview_window) -> None:
+    def thread(self, main_window) -> None:
+        ''' Process video in a separate thread
         '''
-        Process video in a separate thread
-        '''
+        
+        # Don't do anything if the 'setup' methd hasn't been called
+        if not self.setup_done:
+            return
+        
         w, h = self.size
         speed = self.speed
         
@@ -297,39 +345,29 @@ class RollingShutter(object):
           
         try:
             for frame in self.video_reader:
+                cr = self.current_row
                 frame = Image.fromarray(frame) # Convert to Pillow image
 
-                new_line = frame.crop((0,
-                                       self.current_row,
-                                       w,
-                                       self.current_row + speed))
+                new_line = frame.crop((0,cr,w,cr + speed))
                 
-                self.img_output.paste(new_line, (0, self.current_row))
+                self.img_output.paste(new_line, (0, cr))
 
-                if preview_window:
-                    im = frame
-
-                    # Replace 
-                    top_part = (0,0,w-1,self.current_row+speed-1)
-                    im.paste(self.img_output.crop(top_part), top_part)
-
-                    # Draw a line to show the current shutter position
-                    draw = ImageDraw.Draw(im)
-                    draw.line([(0, self.current_row),(w,self.current_row)], fill=128, width=speed)
-                    
-                    # convert back to RGB to draw
-                    im = im.convert('RGB')
-
-                    preview_window.update_image(im)
-
+                # Show preview if the preview window is open
+                if self.preview_window.open:
+                    preview_frame = self.make_preview_frame(frame)
+                    try:
+                        self.preview_window.update_image(preview_frame)
+                    except:
+                        pass
+                
                 frame.close()
 
-                main_window.update_progress(self.current_row)
+                main_window.update_progress(cr)
                 
                 self.current_row += speed
                 if self.current_row > h:
                     break
-            
+                
             self.img_output.save(self.path_output, quality=IMAGE_QUALITY)
             
             main_window.progress_bar.state(['disabled'])
@@ -339,15 +377,33 @@ class RollingShutter(object):
 
         finally:
             self.running = False
-            
+            self.setup_done = False
+
             main_window.update_progress(0)
             main_window.progress_bar.state(['disabled'])
             main_window.enable_buttons()
-    
-            
+
+    def make_preview_frame(self,frame):
+        im = frame
+        cr = self.current_row
+        w, h = self.size
+        speed = self.speed
+
+        # Replace the top part of the frame with the output image
+        top_part = (0,0,w,cr + speed)
+        im.paste(self.img_output.crop(top_part), top_part)
+
+        # Draw a line to show the current shutter position
+        draw = ImageDraw.Draw(im)
+        draw.line([(0, cr),(w,cr)], fill=128, width=speed)
+        
+        # convert back to RGB to draw
+        im = im.convert('RGB')
+
+        return im
+
 def main() -> None:
     root = tk.Tk()
-
     MainApp(root)
     root.mainloop()
     
