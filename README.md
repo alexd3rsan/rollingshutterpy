@@ -25,6 +25,17 @@ Make sure you have the proper read and write permissions of the directories in q
 
 ## Operating Systems
 
-rollingshutter.py has been successfully tested under:
+This fork of rollingshutter.py has been successfully tested under:
 
 - MacOS X 10.12.6
+
+## ToDo's
+
+- Fix progress bar to reflect the realistic processing time
++ -Fix the crash when closing the preview window-
+- Add realistic processing of the shutter speeds in non-integer speeds
+- Add separate option panel
+- Separate windows into files
+- Add save to movie option
+- Add phase roll rendering
+- Refactor the code in a more sane way
