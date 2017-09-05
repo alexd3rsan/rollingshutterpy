@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-"""This script creates a 'rolling-shutter' effect image from a video clip"""
+''' This script creates a 'rolling-shutter' effect image from a video clip
+    '''
 
 __author__ = 'Alex Zeising & Marcin Konowalczyk'
-__version__ = '0.13.0 - direct movie'
+__version__ = '0.14.0 - direct movie input'
 
 # import os
 import tkinter as tk
@@ -172,8 +173,7 @@ class MainApp(object):
         self.rolling_shutter.set_preview_window(self.preview_window)
         
     def start(self) -> None:
-        '''
-        Called by the start button 'btn_start'
+        ''' Called by the start button 'btn_start'
         '''
         self.disable_buttons()
 

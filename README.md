@@ -39,3 +39,5 @@ This fork of rollingshutter.py has been successfully tested under:
 - Add save to movie option
 - Add phase roll rendering
 - Refactor the code in a more sane way
+- Make rollingShutter a class more independent of the main app
+- Fix a bug when attempting to process multiple files
