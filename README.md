@@ -1,7 +1,7 @@
 # rollingshutterpy
 
 A Tkinter GUI-Implementation of a simple rolling-shutter effect.
-This branch attempts to add direct input froma video file.
+This branch attempts to add direct input from a video file.
 
 Inspired by [this](https://www.youtube.com/watch?v=nP1elMR5qjc) YouTube video.
 
@@ -31,11 +31,12 @@ This fork of rollingshutter.py has been successfully tested under:
 
 ## ToDo's
 
-- Fix progress bar to reflect the realistic processing time
-+ -Fix the crash when closing the preview window-
+- [done] Fix progress bar to reflect the realistic processing time
+- [done] Fix the crash when closing the preview window
 - Add realistic processing of the shutter speeds in non-integer speeds
-- Add separate option panel
-- Separate windows into files
+- [done] Add separate options panel
+- Move options to the options panel
+- [?] Separate windows into files
 - Add save to movie option
 - Add phase roll rendering
 - Refactor the code in a more sane way
