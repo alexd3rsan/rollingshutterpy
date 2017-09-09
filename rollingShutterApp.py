@@ -1,16 +1,9 @@
 #!/usr/bin/env python
 ''' This script creates a 'rolling-shutter' effect image from a video clip
-<<<<<<< Updated upstream
-    '''
-
-__author__ = 'Alex Zeising & Marcin Konowalczyk'
-__version__ = '0.14.0 - direct movie input'
-=======
 '''
 
 __author__ = 'Alex Zeising & Marcin Konowalczyk'
 __version__ = '0.14.0 - options window'
->>>>>>> Stashed changes
 
 # import os
 import tkinter as tk
