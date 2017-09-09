@@ -1,3 +1,5 @@
+''' lorem ipsum
+'''
 
 from PIL import Image, ImageDraw, ImageFilter
 import math
@@ -100,7 +102,7 @@ def main():
 
     speed = 5
     blades = 7
-    size = 64
+    size = 512
 
     sfr = SimpleFanRenderer(speed,blades,image_size=size)
     directory = '/Users/marcink/Desktop/temp/'
