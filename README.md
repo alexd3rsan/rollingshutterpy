@@ -33,12 +33,13 @@ This fork of rollingshutter.py has been successfully tested under:
 
 - [done] Fix progress bar to reflect the realistic processing time
 - [done] Fix the crash when closing the preview window
-- Add realistic processing of the shutter speeds in non-integer speeds
+- [?] Add realistic processing of the shutter speeds in non-integer speeds
 - [done] Add separate options panel
-- Move options to the options panel
+- [done] Move options to the options panel
 - [?] Separate windows into files
 - Add save to movie option
 - Add phase roll rendering
 - Refactor the code in a more sane way
 - Make rollingShutter a class more independent of the main app
 - Fix a bug when attempting to process multiple files
+- Change preview window to work similarly to the options window 

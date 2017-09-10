@@ -27,8 +27,8 @@ class MainApp(object):
         self.master = master
         self.version = __version__
 
-        # executes self.on_closing on program exit
-        master.protocol('WM_DELETE_WINDOW', self.on_closing)
+        # executes self.close_up on program exit
+        master.protocol('WM_DELETE_WINDOW', self.close_up)
         master.resizable(False, False)
         master.minsize(width=400, height=380)
         master.title('The RSE-Simulator')
@@ -39,10 +39,8 @@ class MainApp(object):
         self.file_output = ''
 
         self.preview_window = None
-        self.options_window = None
+        self.options_window = OptionsWindow()
 
-        self.tk_speed_val = tk.IntVar()
-        self.tk_speed_val.set(1)
         self.tk_progress_val = tk.DoubleVar()
         self.tk_progress_val.set(0.0)
 
@@ -94,6 +92,7 @@ class MainApp(object):
                                      takefocus=0)
         self.btn_preview.pack(fill='both', padx=40, expand=True, pady=10)
 
+<<<<<<< Updated upstream
         self.speed_scale = ttk.Scale(self.frame_main,
                                      variable=self.tk_speed_val,
                                      command=self.update_speed,
@@ -108,6 +107,8 @@ class MainApp(object):
                                      font=('Tahoma', 13))
         self.label_speed.pack(pady=(0, 8))
 
+=======
+>>>>>>> Stashed changes
         self.progress_bar = ttk.Progressbar(self.frame_main,
                                             orient='horizontal',
                                             mode='determinate',
@@ -160,26 +161,25 @@ class MainApp(object):
         
         self.file_output = path
 
-        self.speed_scale.state(['!disabled'])
         self.btn_start['state'] = 'normal'
 
     def show_options(self) -> None:
         ''' Show the options window
         '''
-        if self.options_window:
-            self.options_window.master.destroy()
-
-        master = tk.Toplevel(self.master)
-        self.options_window = OptionsWindow(master)
+        if self.options_window.master:
+            self.options_window.close_up()
+        else:
+            master = tk.Toplevel(self.master)
+            self.options_window.set_master(master)
 
     def show_preview(self) -> None:
         ''' Show the preview window
         '''
         if self.preview_window:
-            self.preview_window.master.destroy()
-
-        master = tk.Toplevel(self.master)
-        self.preview_window = PreviewWindow(master)
+            self.preview_window.close_up()
+        else:
+            master = tk.Toplevel(self.master)
+            self.preview_window = PreviewWindow(master)
 
         # Set the preview window of the rolling-shutter instance
         self.rolling_shutter.set_preview_window(self.preview_window)
@@ -188,11 +188,14 @@ class MainApp(object):
         ''' Called by the start button 'btn_start'
         '''
         self.disable_buttons()
+        opt = self.options_window
+
+        speed = opt.shutter_speed.get()
 
         rs = self.rolling_shutter
-        rs.setup(self.vid, self.tk_speed_val.get(), self.file_output, IMAGE_QUALITY)
+        rs.setup(self.vid, speed, self.file_output, IMAGE_QUALITY)
 
-        lines_covered = rs.frame_count * self.tk_speed_val.get()
+        lines_covered = rs.frame_count * speed
         if lines_covered > rs.size[1]:
             lines_covered = rs.size[1]
 
@@ -215,9 +218,6 @@ class MainApp(object):
 
         rs.start(self)
 
-    def update_speed(self, event=None) -> None:
-        self.label_speed.config(text='Shutter Speed: '+str(self.tk_speed_val.get()))
-
     def update_progress(self, value: float):
         self.tk_progress_val.set(value)
 
@@ -227,7 +227,6 @@ class MainApp(object):
         self.btn_options['state'] = 'normal'
         self.btn_output['state'] = 'normal'
         #self.btn_preview['state'] = 'normal'
-        self.speed_scale.state(['!disabled'])
 
     def disable_buttons(self) -> None:
         self.btn_input['state'] = 'disabled'
@@ -235,12 +234,16 @@ class MainApp(object):
         self.btn_options['state'] = 'disabled'
         self.btn_output['state'] = 'disabled'
         #self.btn_preview['state'] = 'disabled'
-        self.speed_scale.state(['disabled'])
 
+<<<<<<< Updated upstream
     def on_closing(self) -> None:
         if self.rolling_shutter and self.rolling_shutter.running:
             return None
 
+=======
+    def close_up(self) -> None:
+        if self.rolling_shutter and self.rolling_shutter.running: return None
+>>>>>>> Stashed changes
         self.master.destroy()
 
 class PreviewWindow(object):
@@ -253,7 +256,7 @@ class PreviewWindow(object):
         self.open = True
 
         # Window settings
-        master.protocol('WM_DELETE_WINDOW', self.on_closing)
+        master.protocol('WM_DELETE_WINDOW', self.close_up)
         master.resizable(False, False)
         master.title('RS-Preview')
 
@@ -300,7 +303,7 @@ class PreviewWindow(object):
         self.image_panel.configure(image = self.image)
         self.image_panel.image = self.image
 
-    def on_closing(self) -> None:
+    def close_up(self) -> None:
         self.open = False
         self.master.destroy()
 
@@ -308,20 +311,41 @@ class OptionsWindow(object):
     ''' The window for setting up options
     '''
 
-    def __init__(self, master):
-        self.master = master # Master tkinter object
+    def __init__(self, master=None):
+        ''' OptionsWindow can be initalised with or without master
+        '''
         self.version = __version__
         self.open = True
 
-        # Window settings
-        master.protocol('WM_DELETE_WINDOW', self.on_closing)
-        master.resizable(False, False)
-        master.title('RS-Options')
-
+        # Set master tkinter window
+        self.master = master
+        self.set_master(master)
+        
+        # Define options
         self.shutter_speed = tk.IntVar()
+        self.__set_default()
+
+    def __set_default(self):
+        ''' Set the options of self as default
+        '''
         self.shutter_speed.set(1)
 
-        self.populate_panel()
+    def set_master(self, master=None):
+        ''' Set master tkinter object window
+        '''
+        self.master = master # Master tkinter object
+        
+        if master:
+            # Window settings
+            master.protocol('WM_DELETE_WINDOW', self.close_up)
+            master.resizable(False, False)
+            master.title('RS-Options')
+
+            # Populate window
+            self.populate_panel()
+
+            # Force focus of the window
+            master.focus_force()
 
     def populate_panel(self) -> None:
         ''' Populate the window with things
@@ -351,10 +375,10 @@ class OptionsWindow(object):
         self.speed_scale.pack(pady=(8, 0))
         self.speed_scale.state(['!disabled'])
 
-        self.label_speed = ttk.Label(self.frame_main,
-                                     text='Shutter Speed: 1',
+        self.label_speed = ttk.Label(self.frame_main, text='',
                                      font=('Tahoma', 13))
         self.label_speed.pack(pady=(0, 8))
+        self.update_speed()
 
         # Version label
         self.label_version = tk.Label(self.frame_footer,
@@ -369,9 +393,11 @@ class OptionsWindow(object):
         text = 'Shutter Speed: {}'.format(self.shutter_speed.get())
         self.label_speed.config(text=text)
 
-    def on_closing(self) -> None:
-        self.open = False
+    def close_up(self) -> None:
+        ''' Destroy tkinter master object on closing of the window
+        '''
         self.master.destroy()
+        self.set_master() # set master window to 'None'
 
 def main() -> None:
     root = tk.Tk()
