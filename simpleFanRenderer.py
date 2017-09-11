@@ -100,19 +100,18 @@ def image_to_array(image):
 def main():
     import imageio
 
-    speed = 5
-    blades = 7
-    size = 512
+    speed = 1
+    blades = 3
+    size = 32
 
     sfr = SimpleFanRenderer(speed,blades,image_size=size)
-    directory = '/Users/marcink/Desktop/temp/'
     fps = 30
 
-    filename = 'simple_fan_{}_{}_{}.mp4'.format(speed,blades,size)
+    filename = './simple_fan_{}_{}_{}.mp4'.format(speed,blades,size)
 
-    #params1 = ['-c:v r10k']
-    #params2 = ['-c:v huffyuv -c:a libmp3lame -b:a 320k']
-    writer = imageio.get_writer(filename, fps=fps)#, ffmpeg_params=params1)
+    # params1 = ['-c:v r10k']
+    # params2 = ['-c:v huffyuv -c:a libmp3lame -b:a 320k']
+    writer = imageio.get_writer(filename, fps=fps, quality=9.5)#, ffmpeg_params=params1)
 
     for frame in sfr:
         writer.append_data(image_to_array(frame))
