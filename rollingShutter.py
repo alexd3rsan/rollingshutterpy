@@ -21,9 +21,6 @@ class RollingShutter(object):
         self.img_output = None
         self.quality = 0
 
-        # Current processing row
-        self.current_row = 0
-
         # Is the processing thread running
         self.running = False
 
@@ -43,6 +40,8 @@ class RollingShutter(object):
         self.img_output = Image.new('RGB', self.size)
         self.quality = quality
 
+        self.current_row = 0
+
         self.setup_done = True
     
     def set_preview_window(self, preview_window) -> None:
@@ -50,7 +49,7 @@ class RollingShutter(object):
         '''
         self.preview_window = preview_window
         
-    def processing_thread(self, main_window) -> None:
+    def __processing_thread(self, main_window) -> None:
         ''' Process video in a separate thread
         '''
         
@@ -74,7 +73,7 @@ class RollingShutter(object):
 
                 # Show preview if the preview window is open
                 if self.preview_window.open:
-                    preview_frame = self.make_preview_frame(frame)
+                    preview_frame = self.__make_preview_frame(frame)
                     try:
                         self.preview_window.update_image(preview_frame)
                     except:
@@ -103,7 +102,7 @@ class RollingShutter(object):
             main_window.progress_bar.state(['disabled'])
             main_window.enable_buttons()
 
-    def make_preview_frame(self,frame: Image) -> Image:
+    def __make_preview_frame(self,frame: Image) -> Image:
         '''Make a frame to display in preview window
         '''
         im = frame
@@ -127,6 +126,6 @@ class RollingShutter(object):
     def start(self, main_window):
         '''Start processing the movie is a separate thread 
         '''
-        self.thread = Thread(target=self.processing_thread, args=(main_window,))
+        self.thread = Thread(target=self.__processing_thread, args=(main_window,))
         self.thread.setDaemon(True)
         self.thread.start()

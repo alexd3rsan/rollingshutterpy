@@ -1,3 +1,5 @@
+''' lorem ipsum
+'''
 
 from PIL import Image, ImageDraw, ImageFilter
 import math
