@@ -3,7 +3,7 @@
 '''
 
 __author__ = 'Alex Zeising & Marcin Konowalczyk'
-__version__ = '0.14.0 - options window'
+__version__ = '0.15.0 - kernel changes'
 
 # import os
 import tkinter as tk
@@ -12,10 +12,13 @@ from tkinter.filedialog import asksaveasfilename, askopenfile
 # from tkinter.messagebox import showerror, showinfo, askyesno
 from tkinter.messagebox import askyesno
 
+# import Queue
+import time
+
 from PIL import Image, ImageTk
 import imageio # for direct movie input
 
-from rollingShutter import RollingShutter
+from rollingShutter import TkinterRollingShutter
 
 MAX_SPEED = 30
 IMAGE_QUALITY = 95  # effective range stops at 100
@@ -33,8 +36,8 @@ class MainApp(object):
         master.minsize(width=400, height=380)
         master.title('The RSE-Simulator')
 
-        self.rolling_shutter = RollingShutter()
-
+        self.rolling_shutter = TkinterRollingShutter(self)
+        
         self.vid = None
         self.file_output = ''
 
@@ -92,23 +95,6 @@ class MainApp(object):
                                      takefocus=0)
         self.btn_preview.pack(fill='both', padx=40, expand=True, pady=10)
 
-<<<<<<< Updated upstream
-        self.speed_scale = ttk.Scale(self.frame_main,
-                                     variable=self.tk_speed_val,
-                                     command=self.update_speed,
-                                     from_=1, to=MAX_SPEED,
-                                     length=310,
-                                     takefocus=0)
-        self.speed_scale.pack(pady=(8, 0))
-        self.speed_scale.state(['disabled'])
-
-        self.label_speed = ttk.Label(self.frame_main,
-                                     text='Shutter Speed: 1',
-                                     font=('Tahoma', 13))
-        self.label_speed.pack(pady=(0, 8))
-
-=======
->>>>>>> Stashed changes
         self.progress_bar = ttk.Progressbar(self.frame_main,
                                             orient='horizontal',
                                             mode='determinate',
@@ -193,6 +179,13 @@ class MainApp(object):
         speed = opt.shutter_speed.get()
 
         rs = self.rolling_shutter
+        
+        # Reopen video reader - quick hack to make it read from the beginning
+        if self.vid._pos >= 0:
+            file = self.vid._filename
+            self.vid.close()
+            self.vid = imageio.get_reader(file, 'ffmpeg')
+        
         rs.setup(self.vid, speed, self.file_output, IMAGE_QUALITY)
 
         lines_covered = rs.frame_count * speed
@@ -216,7 +209,7 @@ class MainApp(object):
         self.progress_bar.config(maximum=lines_covered)
         self.progress_bar.state(['!disabled'])
 
-        rs.start(self)
+        rs.start()
 
     def update_progress(self, value: float):
         self.tk_progress_val.set(value)
@@ -235,15 +228,8 @@ class MainApp(object):
         self.btn_output['state'] = 'disabled'
         #self.btn_preview['state'] = 'disabled'
 
-<<<<<<< Updated upstream
-    def on_closing(self) -> None:
-        if self.rolling_shutter and self.rolling_shutter.running:
-            return None
-
-=======
     def close_up(self) -> None:
         if self.rolling_shutter and self.rolling_shutter.running: return None
->>>>>>> Stashed changes
         self.master.destroy()
 
 class PreviewWindow(object):
@@ -286,7 +272,7 @@ class PreviewWindow(object):
         im = Image.new("RGB",(512,512)) # Black temp image
         self.image = ImageTk.PhotoImage(im)
 
-        self.image_panel = tk.Label(self.frame_main, image = self.image)
+        self.image_panel = tk.Label(self.frame_main, image=self.image)
         self.image_panel.pack(side = "bottom", fill = "both", expand = "yes")
 
         # Version label
@@ -295,11 +281,11 @@ class PreviewWindow(object):
                                       font=('Tahoma', 10),
                                       fg='grey60')
         self.label_version.pack(anchor='e', padx=(0, 5))
-    
-    def update_image(self,im):
+        
+    def update_image(self, im):
         ''' Update the image on canvas
         '''
-        self.image = ImageTk.PhotoImage(im.resize((512,512), Image.ANTIALIAS))
+        self.image = ImageTk.PhotoImage(im.resize((512,512), Image.ANTIALIAS)) 
         self.image_panel.configure(image = self.image)
         self.image_panel.image = self.image
 
